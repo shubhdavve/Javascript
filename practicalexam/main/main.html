@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>crud operations</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .form-container, .controls {
+      margin-bottom: 20px;
+    }
+    .form-container input,
+    .controls input,
+    .form-container select,
+    .controls select,
+    .form-container button,
+    .product-card button {
+      padding: 5px;
+      margin: 5px 5px 5px 0;
+      font-size: 20px;
+    }
+    #product-list {
+      display:flex; 
+    }
+    .product-card {
+      border: 1px solid #858282;
+      padding: 10px;
+      margin: 10px;
+      width: 200px;
+    }
+    .product-card img {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>A-Z MART</h1>
+
+  <div class="form-container">
+    <input type="text" id="title" placeholder="Product Title" />
+    <input type="number" id="price" placeholder="Price" />
+    <input type="text" id="image" placeholder="Image URL" />
+    <input type="text" id="category" placeholder="Category" />
+    <button onclick="addProduct()">Add Product</button>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search by Title" oninput="searchProducts()" />
+    <select id="sort" onchange="sortProducts()">
+      <option value="">Sort by Price</option>
+      <option value="low">Low to High</option>
+      <option value="high">High to Low</option>
+    </select>
+    <select id="filter" onchange="filterProducts()">
+      <option value="">Filter by Category</option>
+    </select>
+  </div>
+
+  <div id="product-list"></div>
+
+  <script>
+    let products = JSON.parse(localStorage.getItem('products')) || [];
+
+    function saveToLocalStorage() {
+      localStorage.setItem('products', JSON.stringify(products));
+    }
+
+    function generateId() {
+      return Date.now().toString();
+    }
+
+    function addProduct() {
+      const title = document.getElementById('title').value.trim();
+      const price = document.getElementById('price').value.trim();
+      const image = document.getElementById('image').value.trim();
+      const category = document.getElementById('category').value.trim();
+
+      if (!title || !price || !image || !category) {
+        alert('Please enter all the details');
+        return;
+      } 
+
+      const product = {
+        id: generateId(),
+        title,
+        price: parseFloat(price).toFixed(2),
+        image,
+        category
+      };
+
+      products.push(product);
+      saveToLocalStorage();
+      clearFields();
+      displayProducts();
+    }
+
+    function addProductToList(product) {
+      const productCard = document.createElement('div');
+      productCard.className = 'product-card';
+      productCard.innerHTML = `
+        <strong>${product.title}</strong>
+        <div>Price: ${product.price}</div>
+        ${product.image ? `<img src="${product.image}" alt="${product.title}" />` : ''}
+        <div>Category: ${product.category}</div>
+        <button onclick="editProduct('${product.id}')">Edit</button>
+        <button onclick="deleteProduct('${product.id}')">Delete</button>
+      `;
+      document.getElementById('product-list').appendChild(productCard);
+    }
+
+    function displayProducts(list = products) {
+      const container = document.getElementById('product-list');
+      container.innerHTML = '';
+
+      const categories = new Set();
+      list.forEach(product => {
+        addProductToList(product);
+        if (product.category) categories.add(product.category);
+      });
+
+      const filter = document.getElementById('filter');
+      filter.innerHTML = '<option value="">Filter by Category</option>';
+      categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        filter.appendChild(option);
+      });
+    }
+
+    function clearFields() {
+      document.getElementById('title').value = '';
+      document.getElementById('price').value = '';
+      document.getElementById('image').value = '';
+      document.getElementById('category').value = '';
+    }
+
+    function editProduct(id) {
+      const product = products.find(p => p.id === id);
+      document.getElementById('title').value = product.title;
+      document.getElementById('price').value = product.price;
+      document.getElementById('image').value = product.image;
+      document.getElementById('category').value = product.category;
+      deleteProduct(id);
+    }
+
+    function deleteProduct(id) {
+      products = products.filter(p => p.id !== id);
+      saveToLocalStorage();
+      displayProducts();
+    }
+
+    function sortProducts() {
+      const sortBy = document.getElementById('sort').value;
+      let sorted = [...products];
+      if (sortBy === 'low') sorted.sort((a, b) => a.price - b.price);
+      if (sortBy === 'high') sorted.sort((a, b) => b.price - a.price);
+      displayProducts(sorted);
+    }
+
+    function searchProducts() {
+      const keyword = document.getElementById('search').value.toLowerCase();
+      const filtered = products.filter(p => p.title.toLowerCase().includes(keyword));
+      displayProducts(filtered);
+    }
+
+    function filterProducts() {
+      const category = document.getElementById('filter').value;
+      const filtered = category ? products.filter(p => p.category === category) : products;
+      displayProducts(filtered);
+    }
+
+    window.onload = () => {
+      displayProducts();
+    };
+  </script>
+</body>
+</html>
